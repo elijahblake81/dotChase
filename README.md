@@ -22,12 +22,7 @@ Dot Chase is a fast‑reaction browser game: random glowing dots appear on the s
 2. Open `index.html` in any modern browser (Chrome, Edge, Firefox, etc.).
 3. Play immediately — no build step or server needed.
 
-### Publish with GitHub Pages
+### Try the Game now with GitHub Pages
 
-If this repository is named `dotChase` on your GitHub account:
 
-- Go to **Settings → Pages** in the repo.
-- Under **Source**, choose branch `main` and folder `/ (root)`.
-- After a minute or two your game will be available at:
-
-`https://elijahblake81.github.io/dotChase/`
+https://elijahblake81.github.io/dotChase/

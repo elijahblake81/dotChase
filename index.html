@@ -280,22 +280,6 @@
       box-shadow: 0 0 0 2px var(--glow);
     }
 
-    .name-form .buttons {
-      display: flex;
-      gap: 0.5rem;
-      margin-top: 0.5rem;
-    }
-
-    .name-form .btn-secondary {
-      background: transparent;
-      color: var(--accent);
-      border: 1px solid var(--accent);
-    }
-
-    .name-form .btn-secondary:hover {
-      background: rgba(126, 232, 168, 0.1);
-    }
-
     .result-message {
       font-size: 1rem;
       color: var(--accent);
@@ -343,12 +327,9 @@
       <p class="result-message" id="resultMessage"></p>
       <label for="playerName">Your name (for leaderboard)</label>
       <input type="text" id="playerName" maxlength="20" placeholder="Enter your name">
-      <div class="buttons">
-        <button class="btn" id="submitScoreBtn">Submit Score</button>
-        <button class="btn btn-secondary" id="skipScoreBtn">Skip</button>
-      </div>
+      <button class="btn" id="submitScoreBtn">Submit Score</button>
     </div>
-    <button class="btn play-again-btn hidden" id="playAgainBtn">Play Again</button>
+    <button class="btn play-again-btn" id="playAgainBtn">Play Again</button>
   </div>
 
   <script>
@@ -371,7 +352,6 @@
     const nameForm = document.getElementById('nameForm');
     const playerNameInput = document.getElementById('playerName');
     const submitScoreBtn = document.getElementById('submitScoreBtn');
-    const skipScoreBtn = document.getElementById('skipScoreBtn');
     const playAgainBtn = document.getElementById('playAgainBtn');
     const resultMessage = document.getElementById('resultMessage');
 
@@ -492,9 +472,11 @@
       leaderboardPanel.classList.remove('hidden');
 
       if (wouldBeTop) {
-        resultMessage.textContent = isNewRecord ? `New record! ${finalTime.toFixed(2)}s — Enter your name for the leaderboard.` : `You made the board! ${finalTime.toFixed(2)}s`;
+        resultMessage.textContent = isNewRecord
+          ? `New record! ${finalTime.toFixed(2)}s — Enter your name for the leaderboard, or just play again.`
+          : `You made the board! ${finalTime.toFixed(2)}s — Enter your name, or just play again.`;
         nameForm.classList.remove('hidden');
-        playAgainBtn.classList.add('hidden');
+        playAgainBtn.classList.remove('hidden');
         playerNameInput.value = '';
         playerNameInput.focus();
       } else {
@@ -519,7 +501,7 @@
       saveLeaderboard(board);
       nameForm.classList.add('hidden');
       playAgainBtn.classList.remove('hidden');
-      resultMessage.textContent = `Saved! You're #${board.findIndex(e => e.name === name && e.time === finalTime) + 1} with ${finalTime.toFixed(2)}s`;
+      resultMessage.textContent = `Saved! You're #${board.findIndex(e => e.name === name && e.time === finalTime) + 1} with ${finalTime.toFixed(2)}s.`;
       refreshLeaderboardList();
     }
 
@@ -559,11 +541,6 @@
     });
 
     submitScoreBtn.addEventListener('click', submitScore);
-    skipScoreBtn.addEventListener('click', () => {
-      nameForm.classList.add('hidden');
-      playAgainBtn.classList.remove('hidden');
-      refreshLeaderboardList();
-    });
     playAgainBtn.addEventListener('click', () => {
       leaderboardPanel.classList.add('hidden');
       startScreen.classList.remove('hidden');

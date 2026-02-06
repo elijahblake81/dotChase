@@ -30,7 +30,4 @@ If this repository is named `dotChase` on your GitHub account:
 - Under **Source**, choose branch `main` and folder `/ (root)`.
 - After a minute or two your game will be available at:
 
-`https://YOUR_GITHUB_USERNAME.github.io/dotChase/`
-
-Replace `YOUR_GITHUB_USERNAME` with your actual GitHub username, then share the link.
-
+`https://elijahblake81.github.io/dotChase/`

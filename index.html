@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dot Chase — 25 Dots</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #0d0f14;
+      --surface: #161a22;
+      --accent: #7ee8a8;
+      --accent-dim: #4ade80;
+      --glow: rgba(126, 232, 168, 0.4);
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --danger: #f87171;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow: hidden;
+      cursor: none;
+      user-select: none;
+    }
+
+    /* Custom cursor */
+    .cursor {
+      position: fixed;
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--accent);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 10000;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 20px var(--glow);
+      transition: transform 0.08s ease-out;
+    }
+
+    .cursor-dot {
+      position: fixed;
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 10001;
+      transform: translate(-50%, -50%);
+    }
+
+    .game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: 
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(126, 232, 168, 0.08), transparent),
+        var(--bg);
+    }
+
+    .hud {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 1.25rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+      background: linear-gradient(to bottom, var(--bg) 0%, transparent 100%);
+    }
+
+    .hud-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .hud-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .hud-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-shadow: 0 0 20px var(--glow);
+    }
+
+    .progress-bar-wrap {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 6px;
+      background: var(--surface);
+      z-index: 100;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+      border-radius: 0 4px 0 0;
+      transition: width 0.2s ease-out;
+      box-shadow: 0 0 20px var(--glow);
+    }
+
+    .dot {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      transition: transform 0.1s ease-out, opacity 0.15s ease-out;
+      box-shadow: 0 0 30px var(--glow);
+    }
+
+    .dot::after {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      border: 2px solid var(--accent);
+      opacity: 0.5;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.5; }
+      50% { transform: scale(1.1); opacity: 0.2; }
+    }
+
+    /* Start screen */
+    .start-screen {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2rem;
+      z-index: 500;
+      background: var(--bg);
+      cursor: default;
+    }
+
+    .start-screen h1 {
+      font-size: clamp(2rem, 6vw, 3.5rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .start-screen p {
+      color: var(--muted);
+      max-width: 320px;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .btn {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 0.9rem 2rem;
+      border: none;
+      border-radius: 12px;
+      background: var(--accent);
+      color: var(--bg);
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px var(--glow);
+    }
+
+    .start-screen.hidden {
+      display: none;
+    }
+
+    /* Leaderboard panel */
+    .leaderboard-panel {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--surface);
+      border: 1px solid rgba(126, 232, 168, 0.2);
+      border-radius: 16px;
+      padding: 2rem;
+      min-width: 320px;
+      max-width: 90vw;
+      z-index: 600;
+      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+      cursor: default;
+    }
+
+    .leaderboard-panel h2 {
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+      color: var(--accent);
+    }
+
+    .leaderboard-list {
+      list-style: none;
+      margin-bottom: 1.5rem;
+    }
+
+    .leaderboard-list li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .leaderboard-list li span:first-child {
+      color: var(--muted);
+      margin-right: 0.5rem;
+    }
+
+    .leaderboard-list li .name {
+      color: var(--text);
+    }
+
+    .leaderboard-list li .time {
+      color: var(--accent);
+    }
+
+    .leaderboard-panel.hidden {
+      display: none;
+    }
+
+    .name-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .name-form label {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .name-form input {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1rem;
+      padding: 0.75rem 1rem;
+      border: 1px solid rgba(126, 232, 168, 0.3);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+    }
+
+    .name-form input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--glow);
+    }
+
+    .name-form .buttons {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .name-form .btn-secondary {
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+    }
+
+    .name-form .btn-secondary:hover {
+      background: rgba(126, 232, 168, 0.1);
+    }
+
+    .result-message {
+      font-size: 1rem;
+      color: var(--accent);
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+
+    .play-again-btn {
+      width: 100%;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="cursor" id="cursor"></div>
+  <div class="cursor-dot" id="cursorDot"></div>
+
+  <div class="game-container" id="gameArea">
+    <div class="hud">
+      <div class="hud-item">
+        <span class="hud-label">Dots</span>
+        <span class="hud-value" id="dotsCount">0 / 25</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">Time</span>
+        <span class="hud-value" id="timer">0.00s</span>
+      </div>
+    </div>
+
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+  </div>
+
+  <div class="start-screen" id="startScreen">
+    <h1>Dot Chase</h1>
+    <p>Move your cursor to each dot. Touch 25 dots as fast as you can. Your best time goes on the leaderboard.</p>
+    <button class="btn" id="startBtn">Start Game</button>
+  </div>
+
+  <div class="leaderboard-panel hidden" id="leaderboardPanel">
+    <h2>🏆 Leaderboard</h2>
+    <ul class="leaderboard-list" id="leaderboardList"></ul>
+    <div class="name-form" id="nameForm">
+      <p class="result-message" id="resultMessage"></p>
+      <label for="playerName">Your name (for leaderboard)</label>
+      <input type="text" id="playerName" maxlength="20" placeholder="Enter your name">
+      <div class="buttons">
+        <button class="btn" id="submitScoreBtn">Submit Score</button>
+        <button class="btn btn-secondary" id="skipScoreBtn">Skip</button>
+      </div>
+    </div>
+    <button class="btn play-again-btn hidden" id="playAgainBtn">Play Again</button>
+  </div>
+
+  <script>
+    const TOTAL_DOTS = 25;
+    const MIN_DOT_SIZE = 20;
+    const MAX_DOT_SIZE = 55;
+    const LEADERBOARD_KEY = 'dotchase_leaderboard';
+    const MAX_LEADERBOARD_ENTRIES = 10;
+
+    const gameArea = document.getElementById('gameArea');
+    const startScreen = document.getElementById('startScreen');
+    const startBtn = document.getElementById('startBtn');
+    const dotsCountEl = document.getElementById('dotsCount');
+    const timerEl = document.getElementById('timer');
+    const progressBar = document.getElementById('progressBar');
+    const cursor = document.getElementById('cursor');
+    const cursorDot = document.getElementById('cursorDot');
+    const leaderboardPanel = document.getElementById('leaderboardPanel');
+    const leaderboardList = document.getElementById('leaderboardList');
+    const nameForm = document.getElementById('nameForm');
+    const playerNameInput = document.getElementById('playerName');
+    const submitScoreBtn = document.getElementById('submitScoreBtn');
+    const skipScoreBtn = document.getElementById('skipScoreBtn');
+    const playAgainBtn = document.getElementById('playAgainBtn');
+    const resultMessage = document.getElementById('resultMessage');
+
+    let collected = 0;
+    let startTime = null;
+    let timerInterval = null;
+    let currentDot = null;
+    let mouseX = 0, mouseY = 0;
+    let finalTime = 0;
+    let isPlaying = false;
+
+    // Custom cursor position
+    document.addEventListener('mousemove', (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+      cursor.style.left = mouseX + 'px';
+      cursor.style.top = mouseY + 'px';
+      cursorDot.style.left = mouseX + 'px';
+      cursorDot.style.top = mouseY + 'px';
+    });
+
+    function getLeaderboard() {
+      try {
+        const raw = localStorage.getItem(LEADERBOARD_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveLeaderboard(list) {
+      localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(list));
+    }
+
+    function spawnDot() {
+      if (currentDot) currentDot.remove();
+
+      const size = MIN_DOT_SIZE + Math.random() * (MAX_DOT_SIZE - MIN_DOT_SIZE);
+      const padding = size + 20;
+      const x = padding + Math.random() * (gameArea.offsetWidth - padding * 2);
+      const y = padding + Math.random() * (gameArea.offsetHeight - padding * 2);
+
+      const dot = document.createElement('div');
+      dot.className = 'dot';
+      dot.style.width = size + 'px';
+      dot.style.height = size + 'px';
+      dot.style.left = (x - size / 2) + 'px';
+      dot.style.top = (y - size / 2) + 'px';
+      dot.style.background = `radial-gradient(circle at 30% 30%, var(--accent), var(--accent-dim))`;
+      dot.dataset.cx = x;
+      dot.dataset.cy = y;
+      dot.dataset.radius = size / 2;
+
+      gameArea.appendChild(dot);
+      currentDot = dot;
+    }
+
+    function hitTest(dot) {
+      const cx = parseFloat(dot.dataset.cx);
+      const cy = parseFloat(dot.dataset.cy);
+      const r = parseFloat(dot.dataset.radius);
+      const dx = mouseX - cx;
+      const dy = mouseY - cy;
+      return dx * dx + dy * dy <= r * r;
+    }
+
+    function updateHUD() {
+      dotsCountEl.textContent = `${collected} / ${TOTAL_DOTS}`;
+      progressBar.style.width = (collected / TOTAL_DOTS) * 100 + '%';
+    }
+
+    function updateTimer() {
+      if (!startTime) return;
+      const elapsed = (Date.now() - startTime) / 1000;
+      timerEl.textContent = elapsed.toFixed(2) + 's';
+    }
+
+    function startGame() {
+      startScreen.classList.add('hidden');
+      leaderboardPanel.classList.add('hidden');
+      document.body.style.cursor = 'none';
+      collected = 0;
+      startTime = Date.now();
+      isPlaying = true;
+      updateHUD();
+      updateTimer();
+      timerInterval = setInterval(updateTimer, 50);
+      spawnDot();
+    }
+
+    function endGame() {
+      isPlaying = false;
+      clearInterval(timerInterval);
+      finalTime = (Date.now() - startTime) / 1000;
+      document.body.style.cursor = 'default';
+      if (currentDot) currentDot.remove();
+      currentDot = null;
+      showLeaderboard();
+    }
+
+    function showLeaderboard() {
+      const board = getLeaderboard();
+      const isNewRecord = board.length === 0 || finalTime < board[0].time;
+      const rank = board.findIndex((e) => e.time > finalTime);
+      const wouldBeTop = rank === -1 ? board.length < MAX_LEADERBOARD_ENTRIES : rank < MAX_LEADERBOARD_ENTRIES;
+
+      leaderboardList.innerHTML = '';
+      board.slice(0, MAX_LEADERBOARD_ENTRIES).forEach((entry, i) => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span>#${i + 1}</span><span class="name">${escapeHtml(entry.name)}</span><span class="time">${entry.time.toFixed(2)}s</span>`;
+        leaderboardList.appendChild(li);
+      });
+
+      if (board.length === 0) {
+        leaderboardList.innerHTML = '<li style="color: var(--muted);">No scores yet. Be the first!</li>';
+      }
+
+      leaderboardPanel.classList.remove('hidden');
+
+      if (wouldBeTop) {
+        resultMessage.textContent = isNewRecord ? `New record! ${finalTime.toFixed(2)}s — Enter your name for the leaderboard.` : `You made the board! ${finalTime.toFixed(2)}s`;
+        nameForm.classList.remove('hidden');
+        playAgainBtn.classList.add('hidden');
+        playerNameInput.value = '';
+        playerNameInput.focus();
+      } else {
+        resultMessage.textContent = `Finished in ${finalTime.toFixed(2)}s. Keep practicing!`;
+        nameForm.classList.add('hidden');
+        playAgainBtn.classList.remove('hidden');
+      }
+    }
+
+    function escapeHtml(s) {
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    function submitScore() {
+      const name = (playerNameInput.value || 'Anonymous').trim().slice(0, 20);
+      let board = getLeaderboard();
+      board.push({ name, time: finalTime });
+      board.sort((a, b) => a.time - b.time);
+      board = board.slice(0, MAX_LEADERBOARD_ENTRIES);
+      saveLeaderboard(board);
+      nameForm.classList.add('hidden');
+      playAgainBtn.classList.remove('hidden');
+      resultMessage.textContent = `Saved! You're #${board.findIndex(e => e.name === name && e.time === finalTime) + 1} with ${finalTime.toFixed(2)}s`;
+      refreshLeaderboardList();
+    }
+
+    function refreshLeaderboardList() {
+      const board = getLeaderboard();
+      leaderboardList.innerHTML = '';
+      board.forEach((entry, i) => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span>#${i + 1}</span><span class="name">${escapeHtml(entry.name)}</span><span class="time">${entry.time.toFixed(2)}s</span>`;
+        leaderboardList.appendChild(li);
+      });
+    }
+
+    function gameLoop() {
+      if (isPlaying && currentDot && hitTest(currentDot)) {
+        const dotToRemove = currentDot;
+        currentDot = null;
+        collected++;
+        updateHUD();
+        dotToRemove.style.transform = 'scale(0)';
+        dotToRemove.style.opacity = '0';
+        setTimeout(() => {
+          dotToRemove.remove();
+          if (collected >= TOTAL_DOTS) {
+            endGame();
+          } else {
+            spawnDot();
+          }
+        }, 150);
+      }
+      if (isPlaying) requestAnimationFrame(gameLoop);
+    }
+
+    startBtn.addEventListener('click', () => {
+      startGame();
+      gameLoop();
+    });
+
+    submitScoreBtn.addEventListener('click', submitScore);
+    skipScoreBtn.addEventListener('click', () => {
+      nameForm.classList.add('hidden');
+      playAgainBtn.classList.remove('hidden');
+      refreshLeaderboardList();
+    });
+    playAgainBtn.addEventListener('click', () => {
+      leaderboardPanel.classList.add('hidden');
+      startScreen.classList.remove('hidden');
+    });
+  </script>
+</body>
+</html>

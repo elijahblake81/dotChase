@@ -362,6 +362,7 @@
     let mouseX = 0, mouseY = 0;
     let finalTime = 0;
     let isPlaying = false;
+    let hasSubmittedThisRun = false;
 
     // Custom cursor position
     document.addEventListener('mousemove', (e) => {
@@ -436,6 +437,7 @@
       collected = 0;
       startTime = Date.now();
       isPlaying = true;
+      hasSubmittedThisRun = false;
       updateHUD();
       updateTimer();
       timerInterval = setInterval(updateTimer, 50);
@@ -494,14 +496,38 @@
 
     function submitScore() {
       const name = (playerNameInput.value || 'Anonymous').trim().slice(0, 20);
+      if (!name) return;
+
+      if (hasSubmittedThisRun) {
+        resultMessage.textContent = `You've already submitted this run. Play again to record another score.`;
+        return;
+      }
+
       let board = getLeaderboard();
-      board.push({ name, time: finalTime });
+      const existingIndex = board.findIndex(
+        (entry) => entry.name.toLowerCase() === name.toLowerCase()
+      );
+
+      if (existingIndex !== -1) {
+        // Player already has a score; only keep the better (lower) time
+        if (finalTime < board[existingIndex].time) {
+          board[existingIndex].time = finalTime;
+          resultMessage.textContent = `Nice! You beat your previous time.`;
+        } else {
+          resultMessage.textContent = `You already have a better time on the board. Keeping that one.`;
+        }
+      } else {
+        board.push({ name, time: finalTime });
+        resultMessage.textContent = `Saved your time on the leaderboard.`;
+      }
+
       board.sort((a, b) => a.time - b.time);
       board = board.slice(0, MAX_LEADERBOARD_ENTRIES);
       saveLeaderboard(board);
+
+      hasSubmittedThisRun = true;
       nameForm.classList.add('hidden');
       playAgainBtn.classList.remove('hidden');
-      resultMessage.textContent = `Saved! You're #${board.findIndex(e => e.name === name && e.time === finalTime) + 1} with ${finalTime.toFixed(2)}s.`;
       refreshLeaderboardList();
     }
 
